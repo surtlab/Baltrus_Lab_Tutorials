@@ -10,7 +10,7 @@ Tutorials are organized into individual folders. Each folder contains a dedicate
 
 | Folder | Description |
 |---|---|
-| Coming soon | Tutorials will be listed here as they are added |
+| [Blast-Tutorial](https://github.com/surtlab/Baltrus_Lab_Tutorials/tree/main/Blast-Tutorial) | Installation and usage guide for NCBI BLAST+ on Windows and macOS |
 
 ---
 
