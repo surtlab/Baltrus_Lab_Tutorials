@@ -6,8 +6,8 @@ This tutorial walks through downloading example data from the Baltrus Lab GitHub
 The nucleotide database is built from a draft genome of a *Pantoea ananatis* strain. The protein query contains sequences of the jplate and sheath proteins, which surround the tail fiber of the tailocin locus. This search is designed to identify genomic regions in *P. ananatis* that encode proteins similar to these tailocin structural components.
 
 **What you will need:**
-- BLAST+ installed ([see the BLAST installation guide](https://github.com/surtlab/Baltrus_Lab_Tutorials/tree/main/Blast-Tutorial))
-- `curl` or `wget` installed ([see the example data download guide](https://github.com/surtlab/Baltrus_Lab_Tutorials/tree/main/Blast-Tutorial/Example-Data))
+- BLAST+ installed ([see the BLAST installation guide](https://github.com/surtlab/Baltrus_Lab_Tutorials/blob/main/Blast-Tutorial/blast-install-guide.md))
+- `curl` or `wget` installed ([see the example data download guide](https://github.com/surtlab/Baltrus_Lab_Tutorials/blob/main/Blast-Tutorial/Example-Data-Download.md))
 - A terminal (macOS) or Command Prompt / PowerShell (Windows)
 
 ---
