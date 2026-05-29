@@ -8,7 +8,4 @@ dependencies:
   # --- genome download (step 1) ---
   - biopython>=1.81
   # --- genome annotation (step 2) ---
-  # bakta 1.11.x is the highest version with blast <2.17 (osx-arm64 compatible)
-  # Pin pyhmmer to 0.10.x to match bakta 1.11.x expectations
-  - bakta>=1.11,<1.12
-  - pyhmmer=0.10.*
+  - bakta>=1.9
