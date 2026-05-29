@@ -236,6 +236,8 @@ python annotate_genomes.py --db ~/bakta_db/db-light --threads 8
 ---
 
 ## Troubleshooting
+**`No NCBI account`**
+Sign up for an account at [NCBI Signup](https://www.ncbi.nlm.nih.gov/myncbi/)
 
 **`ModuleNotFoundError: No module named 'Bio'`**
 The conda environment is not activated. Run `mamba activate phylo_pipeline` first.
