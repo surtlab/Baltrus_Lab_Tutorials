@@ -84,20 +84,67 @@ def sanitize_name(name: str) -> str:
 # NCBI helpers
 # ---------------------------------------------------------------------------
 
+def is_assembly_accession(accession: str) -> bool:
+    """Return True if the accession is a GCA/GCF assembly accession."""
+    acc = accession.strip().upper()
+    return acc.startswith("GCA_") or acc.startswith("GCF_")
+
+
 def accession_to_assembly_ftp(accession: str) -> tuple[str | None, str | None]:
     """
-    Given any nucleotide accession (contig, chromosome, or whole genome),
-    resolve it to the NCBI Assembly FTP base path.
+    Given any nucleotide or assembly accession, resolve it to the NCBI
+    Assembly FTP base path.
+
+    Handles:
+      - GCA_/GCF_ assembly accessions → search assembly db directly
+      - NZ_/NC_/CP_ contig accessions  → nuccore → elink → assembly
+      - NZ_JPKO00000000 (WGS master)   → search assembly db directly
 
     Returns (ftp_base_url, assembly_name) or (None, None) on failure.
-
-    Strategy:
-      1. esearch the accession in nuccore to get its internal UID.
-      2. elink nuccore UID → assembly UID.
-      3. esummary the assembly UID to get the FTP path.
-      Prefer RefSeq (GCF) over GenBank (GCA).
     """
-    # Step 1 – nuccore UID
+    # --- GCA/GCF assembly accessions: search assembly db directly ---
+    if is_assembly_accession(accession):
+        # Strip version suffix for search (GCA_000025405.2 -> GCA_000025405)
+        acc_base = accession.strip().split(".")[0]
+        handle = Entrez.esearch(db="assembly", term=acc_base, retmax=1)
+        result = Entrez.read(handle)
+        handle.close()
+        if result["IdList"]:
+            asm_uid = result["IdList"][0]
+            handle = Entrez.esummary(db="assembly", id=asm_uid, report="full")
+            summary = Entrez.read(handle, validate=False)
+            handle.close()
+            doc = summary["DocumentSummarySet"]["DocumentSummary"][0]
+            asm_name = str(doc.get("AssemblyName", ""))
+            ftp = str(doc.get("FtpPath_RefSeq", ""))
+            if not ftp or ftp == "na":
+                ftp = str(doc.get("FtpPath_GenBank", ""))
+            if ftp and ftp != "na":
+                return ftp, asm_name
+        return None, None
+
+    # --- WGS master accessions (e.g. NZ_JPKO00000000) ---
+    # These have 8+ digit numeric suffixes and don't link via nuccore
+    acc_clean = accession.strip().rstrip("_")
+    parts = acc_clean.split(".")
+    if len(parts[0]) >= 12:  # WGS masters tend to be longer
+        handle = Entrez.esearch(db="assembly", term=acc_clean, retmax=1)
+        result = Entrez.read(handle)
+        handle.close()
+        if result["IdList"]:
+            asm_uid = result["IdList"][0]
+            handle = Entrez.esummary(db="assembly", id=asm_uid, report="full")
+            summary = Entrez.read(handle, validate=False)
+            handle.close()
+            doc = summary["DocumentSummarySet"]["DocumentSummary"][0]
+            asm_name = str(doc.get("AssemblyName", ""))
+            ftp = str(doc.get("FtpPath_RefSeq", ""))
+            if not ftp or ftp == "na":
+                ftp = str(doc.get("FtpPath_GenBank", ""))
+            if ftp and ftp != "na":
+                return ftp, asm_name
+
+    # --- Standard nucleotide accessions: nuccore → elink → assembly ---
     handle = Entrez.esearch(db="nuccore", term=accession, retmax=1)
     result = Entrez.read(handle)
     handle.close()
@@ -106,7 +153,6 @@ def accession_to_assembly_ftp(accession: str) -> tuple[str | None, str | None]:
         return None, None
     nuc_uid = result["IdList"][0]
 
-    # Step 2 – linked assembly UID
     handle = Entrez.elink(dbfrom="nuccore", db="assembly", id=nuc_uid)
     link_result = Entrez.read(handle)
     handle.close()
