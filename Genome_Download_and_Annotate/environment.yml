@@ -9,3 +9,19 @@ dependencies:
   - biopython>=1.81
   # --- genome annotation (step 2) ---
   - bakta>=1.9
+  # --- SNP phylogeny (step 3a) ---
+  - parsnp
+  # --- core gene phylogeny (step 3b) ---
+  - roary
+  - perl-file-find-rule
+  - raxml-ng
+  # - modeltest-ng  # not compatible with Apple Silicon (osx-arm64)
+  # --- tree visualization (step 4) ---
+  - r-base>=4.2
+  - r-optparse
+  - r-ggplot2
+  - r-dplyr
+  - r-ape
+  - r-rcolorbrewer
+  - bioconductor-ggtree
+  - bioconductor-treeio

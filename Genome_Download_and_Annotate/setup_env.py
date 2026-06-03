@@ -34,10 +34,29 @@ import sys
 from pathlib import Path
 
 ENV_NAME = "phylo_pipeline"
+TREE_ENV_NAME = "phylo_tree"  # separate env for phylogeny tools (osx-arm64 uses Rosetta)
 BASE_CHANNELS = ["-c", "bioconda", "-c", "conda-forge"]
 BASE_DEPS = [
     "python>=3.10",
     "biopython>=1.81",
+    # step 4 — tree visualization
+    "r-base>=4.2",
+    "r-optparse",
+    "r-ggplot2",
+    "r-dplyr",
+    "r-ape",
+    "r-rcolorbrewer",
+    "bioconductor-ggtree",
+    "bioconductor-treeio",
+]
+
+# Phylogeny tools — not available on osx-arm64 natively, need osx-64 via Rosetta
+TREE_DEPS = [
+    "parsnp",
+    "roary",
+    "perl-file-find-rule",
+    "raxml-ng",
+    "modeltest-ng",
 ]
 
 # Platform-specific bakta/pyhmmer pins
@@ -94,6 +113,9 @@ def env_exists(conda: str) -> bool:
     return ENV_NAME in result.stdout
 
 
+
+
+
 def create_env(conda: str, extra_deps: list[str]):
     cmd = (
         [conda, "create", "-n", ENV_NAME, "--yes"]
@@ -121,6 +143,43 @@ def remove_env(conda: str):
     return result.returncode == 0
 
 
+def create_tree_env(conda: str, plat: str):
+    """Create the phylo_tree environment for phylogeny tools."""
+    if env_exists_named(conda, TREE_ENV_NAME):
+        print(f"\n[INFO] Environment '{TREE_ENV_NAME}' already exists — skipping.")
+        print(f"       Activate with: {conda} activate {TREE_ENV_NAME}")
+        return
+
+    print(f"\nCreating phylogeny environment '{TREE_ENV_NAME}'...")
+    cmd = [conda, "create", "-n", TREE_ENV_NAME, "--yes"] + BASE_CHANNELS + TREE_DEPS
+    import os
+    if plat == "osx-arm64":
+        print("  Apple Silicon detected — using Rosetta (osx-64) for phylogeny tools.")
+        env = {**os.environ, "CONDA_SUBDIR": "osx-64"}
+        result = subprocess.run(cmd, env=env)
+        if result.returncode == 0:
+            # Lock env to osx-64 permanently
+            subprocess.run(
+                [conda, "run", "-n", TREE_ENV_NAME,
+                 "conda", "config", "--env", "--set", "subdir", "osx-64"],
+                env=env
+            )
+    else:
+        result = subprocess.run(cmd)
+
+    if result.returncode == 0:
+        print(f"\nPhylogeny environment '{TREE_ENV_NAME}' created!")
+        print(f"Activate with:\n    {conda} activate {TREE_ENV_NAME}\n")
+    else:
+        print(f"\n[ERROR] Could not create '{TREE_ENV_NAME}' environment.")
+
+
+def env_exists_named(conda: str, name: str) -> bool:
+    """Check if a named conda environment exists."""
+    result = subprocess.run([conda, "env", "list"], capture_output=True, text=True)
+    return name in result.stdout
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=f"Set up the {ENV_NAME} conda environment for your platform.",
@@ -128,6 +187,8 @@ def main():
     )
     parser.add_argument("--update", action="store_true", help="Update packages in existing environment")
     parser.add_argument("--remove", action="store_true", help="Remove the environment")
+    parser.add_argument("--tree-env", action="store_true",
+                        help="Also create the phylo_tree environment for phylogeny tools")
     args = parser.parse_args()
 
     # Detect platform
@@ -196,13 +257,20 @@ def main():
                 sys.exit(1)
             sys.exit(0)
 
+    # Create phylo_tree env if requested (independent of phylo_pipeline state)
+    if args.tree_env:
+        create_tree_env(conda, plat)
+
     # Create
     if env_exists(conda):
         print(
             f"\n[INFO] Environment '{ENV_NAME}' already exists.\n"
             f"       Use --update to update packages, or --remove to start fresh.\n"
         )
-        sys.exit(0)
+        if not args.tree_env:
+            sys.exit(0)
+        else:
+            sys.exit(0)
 
     print(f"\nCreating environment '{ENV_NAME}'...")
     if create_env(conda, extra_deps):
@@ -211,6 +279,8 @@ def main():
     else:
         print("\n[ERROR] Environment creation failed.")
         sys.exit(1)
+
+
 
 
 if __name__ == "__main__":
